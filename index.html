@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <title>Document</title>
+</head>
+<body>
+    <input id = "key" type = "text" placeholder = "Enter Your GPT API Key" style = "text-align: center;width:250px;height:40px;display:block;margin:auto;font-size: 1rem;"/>
+    <div style = "display:flex;justify-content: center;align-items: center;width:100%;height:100vh;flex-direction:column;font-size:1.3rem;">
+        <button onclick = "runSpeechRecog();" style = "width:100px;height:100px;background-color: skyblue;border:none;border-radius:50%;">
+            <span class="material-symbols-outlined" style = "color:white;transform: scale(2);">
+                mic
+                </span>
+        </button>
+        <label id = "output" style = "margin:25px;"></label>
+        <label  id = "status" style = "margin:25px;display:none;">Fetching Response....</label>
+    </div>
+    <script>
+        var output = document.getElementById('output');
+        runSpeechRecog = () => 
+        {
+           document.getElementById("output").innerHTML = "Loading text...";
+           
+           var action = document.getElementById('action');
+           let recognization = new webkitSpeechRecognition();
+           recognization.onstart = () => {
+              action.innerHTML = "Listening...";
+           }
+           recognization.onresult = (e) => {
+              var transcript = e.results[0][0].transcript;
+              output.innerHTML = transcript;
+              document.getElementById("status").style.display = "block";
+              getResponses();
+              output.classList.remove("hide")
+              action.innerHTML = "";
+           }
+           recognization.start();
+        }
+        function getResponses()
+        {
+            if(output.innerHTML !== null)
+            {
+                const prompts = output.innerHTML;
+                const keyinput = document.getElementById("key").value;
+                getResponse(prompts,keyinput).then(data => 
+                {
+                    const dataReceived = JSON.parse(data);
+                    let output = dataReceived.choices[0].message.content;
+                    console.log(output);
+                    document.getElementById("status").innerHTML = output;
+                    if ('speechSynthesis' in window) 
+                    {
+                        const utterance = new SpeechSynthesisUtterance(output);
+                        speechSynthesis.speak(utterance);
+                    }
+                     else 
+                    {
+                        alert('Text-to-speech is not supported in this browser.');
+                    }
+                    
+                })
+                .catch(error =>
+                {
+                    console.log(error);
+                }); 
+            }
+        }
+        
+        
+        async function getResponse(prompt,key)
+        {
+                const apiKey = key;
+                const apiUrl = 'https://api.openai.com/v1/chat/completions';
+
+                const requestBody = {messages : [{role: "user", content: prompt}],max_tokens: 1000,model: "gpt-3.5-turbo",};
+
+                const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: {
+                'Authorization': `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
+                },
+
+                body: JSON.stringify(requestBody),
+                });
+
+                const data = await response.json();
+                const jsonString = JSON.stringify(data);
+
+                return jsonString;
+                
+        }
+        
+     </script>
+</body>
+</html>
